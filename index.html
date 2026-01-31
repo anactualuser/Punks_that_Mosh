@@ -47,7 +47,10 @@
       box-shadow: 0 2px 12px rgba(0,0,0,0.18);
       font-family: system-ui, Arial, sans-serif;
     }
-
+    .canvas-item .editable {
+      pointer-events: auto;
+      cursor: text;
+    }
     #canvas-tools button,
     #canvas-tools label {
       padding: 8px 12px;
@@ -186,7 +189,11 @@
       const y = Math.abs(pan.y) + 120;
       return { x, y };
     }
-
+      document.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.editable')) {
+          e.stopPropagation();   // stop Panzoom drag
+        }
+      });
     // =========================
     // Tool: Add Text
     // =========================
