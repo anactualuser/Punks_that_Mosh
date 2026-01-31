@@ -1,92 +1,241 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Infinite Canvas</title>
+
+  <style>
+    /* =========================
+       Canvas Viewport (window)
+       ========================= */
+    .canvas-viewport {
+      width: 100%;
+      height: 600px;              /* Adjust height as needed */
+      overflow: hidden;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      cursor: grab;
+      position: relative;
+      touch-action: none;         /* Panzoom uses pointer events; keeps drag smooth */
+    }
+
+    /* =========================
+       Infinite canvas surface
+       ========================= */
+    #infinite-canvas {
+      width: 5000px;
+      height: 5000px;
+      position: absolute;
+      background-image: radial-gradient(#d1d1d1 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+
+    /* =========================
+       Floating toolbar tools
+       ========================= */
+    #canvas-tools {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 9999;
+      display: flex;
+      gap: 8px;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      font-family: system-ui, Arial, sans-serif;
+    }
+
+    #canvas-tools button,
+    #canvas-tools label {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    #canvas-tools button:hover,
+    #canvas-tools label:hover {
+      background: #f2f2f2;
+    }
+
+    /* =========================
+       Items on the canvas
+       ========================= */
+    .canvas-item {
+      position: absolute;
+      background: white;
+      padding: 12px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      width: 240px;
+      border: 1px solid #eee;
+    }
+
+    .canvas-item img {
+      width: 100%;
+      border-radius: 6px;
+      display: block;
+    }
+
+    .canvas-item .editable {
+      outline: none;
+      min-height: 40px;
+      font-family: system-ui, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+  </style>
 </head>
-<body><!-- 1. CSS STYLING -->
-<style>
-  /* The Viewport: Fixes the size of the window on your page */
-<!-- 1. CSS FOR INTERFACE -->
-<style>
-  .canvas-viewport {
-    width: 100%; height: 600px; overflow: hidden; background: #fafafa;
-    border: 1px solid #ddd; cursor: grab; position: relative; touch-action: none;
-  }
-  #infinite-canvas {
-    width: 5000px; height: 5000px;
-    background-image: radial-gradient(#d1d1d1 1px, transparent 1px);
-    background-size: 30px 30px; position: absolute;
-  }
-  /* Floating Toolbar */
-  .canvas-controls {
-    position: absolute; top: 10px; left: 10px; z-index: 10;
-    display: flex; gap: 8px; background: white; padding: 10px;
-    border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  }
-  .canvas-btn {
-    padding: 8px 12px; cursor: pointer; border: 1px solid #ccc;
-    background: white; border-radius: 4px; font-family: sans-serif; font-size: 12px;
-  }
-  .canvas-btn:hover { background: #eee; }
 
-  /* Style for user-added notes */
-  .canvas-item {
-    position: absolute; background: white; padding: 15px;
-    border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    width: 200px; border: 1px solid #eee;
-  }
-</style>
+<body>
+  <!-- Toolbar Tools (these ARE the “tools on the published page”) -->
+  <div class="canvas-viewport" id="canvas-viewport">
+    <div id="canvas-tools">
+      <button id="btn-add-text">+ Add Text</button>
 
-<!-- 2. HTML STRUCTURE -->
-<div class="canvas-viewport">
-  <!-- User Tools -->
-  <div class="canvas-controls">
-    <button class="canvas-btn" onclick="addNote()">+ Add Text</button>
-    <button class="canvas-btn" onclick="resetView()">Reset View</button>
-  </div>
+      <!-- Upload Image tool -->
+      <label>
+        Upload Image
+        <input type="file" id="file-upload" accept="image/*" hidden />
+      </label>
 
-  <div id="infinite-canvas">
-    <div class="canvas-item" style="top: 2500px; left: 2500px;">
-      <strong>Welcome!</strong><br>Use the buttons above to build your board.
+      <button id="btn-reset">Reset View</button>
+    </div>
+
+    <!-- Infinite canvas surface -->
+    <div id="infinite-canvas">
+      <!-- Starter item (kept near center so you can find it) -->
+      <div class="canvas-item" style="top: 2450px; left: 2450px;">
+        <h3 style="margin:0 0 8px 0;">Infinite Canvas</h3>
+        <div class="editable" contenteditable="true">
+          Click and drag to pan. Use wheel to zoom. Add text or upload images using the tools above.
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- 3. JAVASCRIPT LOGIC -->
-<script src="https://unpkg.com"></script>
-<script>
-  let panzoom;
-  const canvas = document.getElementById('infinite-canvas');
+  <!-- ✅ Correct Panzoom import (your previous unpkg URL did not load Panzoom) -->
+  <script src="https://unpkg.com/@panzoom/panzoom/dist/panzoom.min.js"></script>
 
-  window.addEventListener('load', function() {
-    panzoom = Panzoom(canvas, { maxScale: 4, minScale: 0.1 });
-    canvas.parentElement.addEventListener('wheel', panzoom.zoomWithWheel);
-    
-    // Initial Center
-    resetView();
-  });
+  <script>
+    // =========================
+    // Global references
+    // =========================
+    let panzoom = null;
 
-  function resetView() {
-    panzoom.zoom(1);
-    panzoom.pan(-2250, -2200); 
-  }
+    const viewport = document.getElementById('canvas-viewport');
+    const canvas = document.getElementById('infinite-canvas');
 
-  function addNote() {
-    const note = document.createElement('div');
-    note.className = 'canvas-item';
-    // Position it roughly in the current view
-    const x = Math.abs(panzoom.getPan().x) + 100;
-    const y = Math.abs(panzoom.getPan().y) + 100;
-    
-    note.style.left = x + 'px';
-    note.style.top = y + 'px';
-    note.innerHTML = `<div contenteditable="true">Click to edit this text...</div>`;
-    
-    canvas.appendChild(note);
-  }
-</script>
+    // =========================
+    // Init Panzoom once
+    // =========================
+    window.addEventListener('load', () => {
+      if (typeof Panzoom === "undefined") {
+        console.error("Panzoom failed to load. Check the script URL.");
+        return;
+      }
 
-  
+      panzoom = Panzoom(canvas, {
+        maxScale: 4,
+        minScale: 0.2
+      });
+
+      // Wheel zoom ONLY inside the viewport; prevent page scroll while zooming
+      viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        panzoom.zoomWithWheel(e);
+      }, { passive: false });
+
+      // Start centered on the canvas
+      resetView();
+
+      // Wire tool buttons
+      document.getElementById('btn-reset').addEventListener('click', resetView);
+      document.getElementById('btn-add-text').addEventListener('click', addTextItem);
+      document.getElementById('file-upload').addEventListener('change', handleImageUpload);
+    });
+
+    // =========================
+    // Tool: Reset View
+    // =========================
+    function resetView() {
+      if (!panzoom) return;
+
+      // Reset zoom then pan to center-ish of the 5000x5000 surface
+      panzoom.zoom(1, { animate: false });
+
+      // Center view around ~2500/2500 (tweak if you change canvas size)
+      panzoom.pan(-2250, -2250, { animate: false });
+    }
+
+    // =========================
+    // Helper: place new items near current view
+    // =========================
+    function getDropPoint() {
+      if (!panzoom) return { x: 2500, y: 2500 };
+
+      const pan = panzoom.getPan();
+      // Convert viewport-ish into canvas coords (simple practical approach)
+      const x = Math.abs(pan.x) + 120;
+      const y = Math.abs(pan.y) + 120;
+      return { x, y };
+    }
+
+    // =========================
+    // Tool: Add Text
+    // =========================
+    function addTextItem() {
+      const p = getDropPoint();
+
+      const item = document.createElement('div');
+      item.className = 'canvas-item';
+      item.style.left = p.x + 'px';
+      item.style.top  = p.y + 'px';
+
+      item.innerHTML = `
+        <div class="editable" contenteditable="true">
+          Click to edit this text…
+        </div>
+      `;
+
+      canvas.appendChild(item);
+    }
+
+    // =========================
+    // Tool: Upload Image (local-only)
+    // NOTE: This displays the selected image, but does NOT “host” it.
+    // If you refresh, it’s gone unless you add saving (localStorage/server).
+    // =========================
+    function handleImageUpload(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const p = getDropPoint();
+      const url = URL.createObjectURL(file);
+
+      const item = document.createElement('div');
+      item.className = 'canvas-item';
+      item.style.left = p.x + 'px';
+      item.style.top  = p.y + 'px';
+
+      item.innerHTML = `
+        <img src="${url}" alt="uploaded image" />
+        <div class="editable" contenteditable="true" style="margin-top:8px;">
+          (optional caption)
+        </div>
+      `;
+
+      canvas.appendChild(item);
+
+      // Reset the file input so uploading the same file again works
+      e.target.value = "";
+    }
+  </script>
 </body>
 </html>
