@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Infinite Canvas</title>
-
   <style>
     /* =========================
        Canvas Viewport (window)
@@ -19,7 +18,6 @@
       position: relative;
       touch-action: none;         /* Panzoom uses pointer events; keeps drag smooth */
     }
-
     /* =========================
        Infinite canvas surface
        ========================= */
@@ -30,7 +28,6 @@
       background-image: radial-gradient(#d1d1d1 1px, transparent 1px);
       background-size: 30px 30px;
     }
-
     /* =========================
        Floating toolbar tools
        ========================= */
@@ -66,7 +63,6 @@
     #canvas-tools label:hover {
       background: #f2f2f2;
     }
-
     /* =========================
        Items on the canvas
        ========================= */
@@ -79,13 +75,11 @@
       width: 240px;
       border: 1px solid #eee;
     }
-
     .canvas-item img {
       width: 100%;
       border-radius: 6px;
       display: block;
     }
-
     .canvas-item .editable {
       outline: none;
       min-height: 40px;
@@ -95,22 +89,18 @@
     }
   </style>
 </head>
-
 <body>
   <!-- Toolbar Tools (these ARE the “tools on the published page”) -->
   <div class="canvas-viewport" id="canvas-viewport">
     <div id="canvas-tools">
       <button id="btn-add-text">+ Add Text</button>
-
       <!-- Upload Image tool -->
       <label>
         Upload Image
         <input type="file" id="file-upload" accept="image/*" hidden />
       </label>
-
       <button id="btn-reset">Reset View</button>
     </div>
-
     <!-- Infinite canvas surface -->
     <div id="infinite-canvas">
       <!-- Starter item (kept near center so you can find it) -->
@@ -122,19 +112,15 @@
       </div>
     </div>
   </div>
-
   <!-- ✅ Correct Panzoom import (your previous unpkg URL did not load Panzoom) -->
   <script src="https://unpkg.com/@panzoom/panzoom/dist/panzoom.min.js"></script>
-
   <script>
     // =========================
     // Global references
     // =========================
     let panzoom = null;
-
     const viewport = document.getElementById('canvas-viewport');
     const canvas = document.getElementById('infinite-canvas');
-
     // =========================
     // Init Panzoom once
     // =========================
@@ -143,40 +129,32 @@
         console.error("Panzoom failed to load. Check the script URL.");
         return;
       }
-
       panzoom = Panzoom(canvas, {
         maxScale: 4,
         minScale: 0.2
       });
-
       // Wheel zoom ONLY inside the viewport; prevent page scroll while zooming
       viewport.addEventListener('wheel', (e) => {
         e.preventDefault();
         panzoom.zoomWithWheel(e);
       }, { passive: false });
-
       // Start centered on the canvas
       resetView();
-
       // Wire tool buttons
       document.getElementById('btn-reset').addEventListener('click', resetView);
       document.getElementById('btn-add-text').addEventListener('click', addTextItem);
       document.getElementById('file-upload').addEventListener('change', handleImageUpload);
     });
-
     // =========================
     // Tool: Reset View
     // =========================
     function resetView() {
       if (!panzoom) return;
-
       // Reset zoom then pan to center-ish of the 5000x5000 surface
       panzoom.zoom(1, { animate: false });
-
       // Center view around ~2500/2500 (tweak if you change canvas size)
       panzoom.pan(-2250, -2250, { animate: false });
     }
-
     // =========================
     // Helper: place new items near current view
     // =========================
@@ -204,16 +182,13 @@
       item.className = 'canvas-item';
       item.style.left = p.x + 'px';
       item.style.top  = p.y + 'px';
-
       item.innerHTML = `
         <div class="editable" contenteditable="true">
           Click to edit this text…
         </div>
       `;
-
       canvas.appendChild(item);
     }
-
     // =========================
     // Tool: Upload Image (local-only)
     // NOTE: This displays the selected image, but does NOT “host” it.
@@ -222,24 +197,19 @@
     function handleImageUpload(e) {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
-
       const p = getDropPoint();
       const url = URL.createObjectURL(file);
-
       const item = document.createElement('div');
       item.className = 'canvas-item';
       item.style.left = p.x + 'px';
       item.style.top  = p.y + 'px';
-
       item.innerHTML = `
         <img src="${url}" alt="uploaded image" />
         <div class="editable" contenteditable="true" style="margin-top:8px;">
           (optional caption)
         </div>
       `;
-
       canvas.appendChild(item);
-
       // Reset the file input so uploading the same file again works
       e.target.value = "";
     }
