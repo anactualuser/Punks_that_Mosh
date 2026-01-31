@@ -131,7 +131,8 @@
       }
       panzoom = Panzoom(canvas, {
         maxScale: 4,
-        minScale: 0.2
+        minScale: 0.2,
+        exclude: ['.editable']   // <- add this line
       });
       // Wheel zoom ONLY inside the viewport; prevent page scroll while zooming
       viewport.addEventListener('wheel', (e) => {
